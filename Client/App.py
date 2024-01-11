@@ -6,7 +6,7 @@ from tkinter import *
 import FrameLibrary
 
 customtkinter.set_appearance_mode("System")  # Modes: "System" (standard), "Dark", "Light"
-customtkinter.set_default_color_theme("blue")  # Themes: "blue" (standard), "green", "dark-blue"
+customtkinter.set_default_color_theme("dark-blue")  # Themes: "blue" (standard), "green", "dark-blue"
 
 
 class App(customtkinter.CTk):
@@ -16,8 +16,17 @@ class App(customtkinter.CTk):
         self.title("DRIP")
         self.geometry(f"{1100}x{580}")
 
-        self.frames = [FrameLibrary.RegisterFrame(self)]
+        self.frames = [FrameLibrary.RegisterFrame(self, width=1000, height = 800)]
         self.frames[0].pack()
+
+        self.mode = customtkinter.CTkComboBox(
+            self, values=["System", "Dark", "Light"], width=200, justify='center', font=("Segoe", 20),
+            command=self.change_mode)
+        self.mode.pack()
+        self.mode.place(rely=0.1, relx=0.1, anchor=CENTER)
+
+    def change_mode(self, new_mode:str):
+        customtkinter.set_appearance_mode(new_mode)
 
 
 if __name__ == "__main__":
