@@ -1,12 +1,7 @@
 import joblib
 import GoogleNews
-
-
-# searcher = GoogleNews.GoogleNews(lang='en')
-# searcher.enableException(True)
-# searcher.setperiod(period='2y')
-# searcher.get_news('Spongebob')
-# a = searcher.result(sort=True)
+from newspaper import Article
+import base64
 
 class ArticleFinder():
     """Define an object of type <ArticleFinder> for getting articles off the internet
@@ -26,6 +21,7 @@ class ArticleFinder():
         self.google_search = GoogleNews.GoogleNews(lang=self.language)
         self.google_search.enableException(True)
         self.google_search.setperiod(self.period)
+        self.google_search.set_encode('utf-8')
         self.google_search.get_news(self.subject)
 
         max_articles_number = 25
@@ -38,4 +34,9 @@ class ArticleFinder():
 dicty = {"subject": "racism", "lang": "en", "period": "4y"}
 finderz = ArticleFinder(dicty)
 
-print(len(finderz.articleLinkList))
+print(finderz.articleLinkList)
+
+google_url = "https://news.google.com/articles/CBMiZmh0dHBzOi8vd3d3LnB1c2hzcXVhcmUuY29tL2d1aWRlcy9ob3Jpem9uLWZvcmJpZGRlbi13ZXN0LWJ1cm5pbmctc2hvcmVzLWFsbC1kZWx2ZXJzLXRyaW5rZXRzLWxvY2F0aW9uc9IBAA?hl=en-CA&gl=CA&ceid=CA%3Aen"
+base64_url = google_url.replace("https://news.google.com/articles/","").split("?")[0]
+actual_url = base64.b64decode(base64_url)[4:-3].decode('utf-8')
+print(actual_url)
