@@ -40,3 +40,5 @@ google_url = "https://news.google.com/articles/CBMiZmh0dHBzOi8vd3d3LnB1c2hzcXVhc
 base64_url = google_url.replace("https://news.google.com/articles/","").split("?")[0]
 actual_url = base64.b64decode(base64_url)[4:-3].decode('utf-8')
 print(actual_url)
+
+#TODO: Turn news.google.com/articles into normal url for the newspaper3k to process
