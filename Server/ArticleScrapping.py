@@ -5,6 +5,7 @@ from newspaper import Article
 import base64
 from urllib.parse import urlparse, parse_qs, unquote
 
+
 class ArticleFinder():
     """Define an object of type <ArticleFinder> for getting articles off the internet
 
@@ -15,10 +16,10 @@ class ArticleFinder():
     :rtype: ArticleFinder
     """
 
-    def __init__(self, configs):
-        self.subject = configs['subject']
-        self.language = configs['lang']
-        self.period = configs['period']
+    def __init__(self, subject, language, period):
+        self.subject = subject
+        self.language = language
+        self.period = period
 
         self.model = joblib.load("PropDetectionModel.mdl")
         self.count_vectorize = joblib.load("CountVectorizer.vct")
@@ -33,7 +34,7 @@ class ArticleFinder():
         self.articleLinkList = self.google_search.get_links()[:max_articles_number]
         for i in range(len(self.articleLinkList)):
             self.articleLinkList[i] = self.decipher_url(self.articleLinkList[i])
-            
+
         self.create_propaganda_isolation()
 
     def close(self):
@@ -79,11 +80,5 @@ class ArticleFinder():
             average_prediction = (count_of_ones / len(predictions))
             self.predsArticles.append((article_text, average_prediction))
 
-    def printPreds(self):
-        for pred in self.predsArticles:
-            print(pred[1])
-
-
-dicty = {"subject": "racism", "lang": "en", "period": "3y"}
-finderz = ArticleFinder(dicty)
-print(finderz.printPreds())
+    def return_preds(self):
+        return self.predsArticles
