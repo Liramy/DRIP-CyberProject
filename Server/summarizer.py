@@ -1,13 +1,15 @@
 import os
 from openai import OpenAI
+import ProjectVariables
 from ArticleScrapping import ArticleScrapper
 
+API_KEY = ProjectVariables.API_Key
 scrapper = ArticleScrapper("Avatar the Last Airbender", '2y', 'En')
 completed_articles = []
 for article in scrapper.article_array:
     complete_text = '.'.join(article)
 
-client = OpenAI(api_key="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")
+client = OpenAI(api_key=API_KEY)
 
 combined_content = client.completions.create(
     model="davinci-002",
