@@ -6,17 +6,17 @@ import base64
 from urllib.parse import urlparse, parse_qs, unquote
 
 
-class ArticleFinder():
+class ArticleScrapper():
     """Define an object of type <ArticleFinder> for getting articles off the internet
 
     :param configs: Contains the list of configs for the search results
     :type configs: dict
 
     :returns: An object for getting articles of the internet
-    :rtype: ArticleFinder
+    :rtype: ArticleScrapper
     """
 
-    def __init__(self, subject, language, period):
+    def __init__(self, subject, period, language='En'):
         self.subject = subject
         self.language = language
         self.period = period
@@ -55,7 +55,7 @@ class ArticleFinder():
         return f'https://news.google.com/articles/{decoded_path}?hl={language}'
 
     def create_propaganda_isolation(self):
-        article_array = []
+        self.article_array = []
         for article_url in self.articleLinkList:
             try:
                 article = Article(article_url)
@@ -66,12 +66,12 @@ class ArticleFinder():
                 # Split the text into an array of words, excluding specified characters
                 text = [sentence.strip() for sentence in article.text.split('.') if
                         sentence.strip() not in exclude_chars]
-                article_array.append(text)
+                self.article_array.append(text)
             except Exception as e:
                 pass
         i = 0
         self.predsArticles = []
-        for article_text in article_array:
+        for article_text in self.article_array:
             if len(article_text) < 3:
                 pass
             x_value = self.count_vectorize.transform(article_text)
@@ -82,3 +82,7 @@ class ArticleFinder():
 
     def return_preds(self):
         return self.predsArticles
+
+    def return_texts(self):
+        return self.article_array
+
