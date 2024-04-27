@@ -22,8 +22,14 @@ class Tabs(customtkinter.CTkTabview):
         self.tab("Login").grid_columnconfigure(0, weight=1)
         self.tab("Register").grid_columnconfigure(0, weight=1)
 
-        # add widgets on tabs
+        # Define the fonts used
         label_font = customtkinter.CTkFont(family="Segoe UI", size=30)
+        input_font = customtkinter.CTkFont(family="Segoe UI", size=15)
+
+        #------------------------------------------------------------------------------
+        # Login page
+        
+        # "log in" label
         self.label = customtkinter.CTkLabel(
             master=self.tab("Login"), 
             height=30, width=100, 
@@ -31,17 +37,19 @@ class Tabs(customtkinter.CTkTabview):
             text_color=("#26272E", "#E9EFE7"))
         self.label.grid(row=0, column=0, padx=0, pady=10)
         
-        input_font = customtkinter.CTkFont(family="Segoe UI", size=15)
+        # Username input textbox
         self.username_login = customtkinter.CTkEntry(self.tab("Login"), 
                                                        width=300, height= 20, font=input_font,
-                                                       placeholder_text="Enter Username")
+                                                       placeholder_text="Enter Username (4-16)")
         self.username_login.grid(row=1, column=0, padx=0, pady=10)
         
+        # Password input textbox
         self.password_login = customtkinter.CTkEntry(self.tab("Login"), 
                                                        width=300, height= 20, font=input_font,
-                                                       placeholder_text="Enter Password", show="*")
+                                                       placeholder_text="Enter Password (6-30)", show="*")
         self.password_login.grid(row=2, column=0, padx=0, pady=10)
         
+        # Login button
         self.login_button = customtkinter.CTkButton(self.tab("Login"), width=200, height= 75,
                                                     font=label_font, fg_color=("#C8CEC6", "#1E2025"),
                                                     corner_radius=20, text="Log In", command=self.log_in)
@@ -57,40 +65,64 @@ class Tabs(customtkinter.CTkTabview):
             text_color=("#26272E", "#E9EFE7"))
         self.label.grid(row=0, column=0, padx=0, pady=10)
         
+        # Username textbox
         self.username_register = customtkinter.CTkEntry(self.tab("Register"), 
                                                        width=300, height= 20, font=input_font,
-                                                       placeholder_text="Enter Username")
+                                                       placeholder_text="Enter Username (4-16)")
         self.username_register.grid(row=1, column=0, padx=0, pady=10)
         
+        # Password textbox
         self.password_register = customtkinter.CTkEntry(self.tab("Register"), 
                                                        width=300, height= 20, font=input_font,
-                                                       placeholder_text="Enter Password", show="*")
+                                                       placeholder_text="Enter Password (6-30)", show="*")
         self.password_register.grid(row=2, column=0, padx=0, pady=10)
         
+        # Password confirmation textbox
         self.password_confirm = customtkinter.CTkEntry(self.tab("Register"), 
                                                        width=300, height= 20, font=input_font,
                                                        placeholder_text="Confirm Password", show="*")
-        
         self.password_confirm.grid(row=3, column=0, padx=0, pady=10)
         
-        
+        # Register button
         self.register_button = customtkinter.CTkButton(self.tab("Register"), width=200, height= 75,
                                                     font=label_font, fg_color=("#C8CEC6", "#1E2025"),
                                                     corner_radius=20, text="Register", command=self.register)
-        
         self.register_button.grid(row=4, column=0, padx=0, pady=30)
         
     def log_in(self):
         username = self.username_login.get()
         password = self.password_login.get()
-        print(f'Username: {username} \nPassword: {password}')
+        
+        if self.validation(username) and self.validation(password, False):
+            print("In")
+        return
         
     def register(self):
         username = self.username_register.get()
         password = self.password_register.get()
         password_confirm = self.password_confirm.get()
         
-        print(f'username: {username}\nPassword: {password}\nPassword Confirmation: {password_confirm}')
+        if (self.validation(username)) and (
+            self.validation(password, False)) and (
+            password == password_confirm):
+                
+            print("In")
+        return
+        
+    def validation(self, user_data, is_username=True):
+        # User data for validation - Ease of access
+        max_characters = 16 if is_username else 30 # 16 for username, 30 for password
+        min_characters = 4 if is_username else 6 # 4 for username, 6 for password
+        allowed_characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_1234567890"\
+                                if is_username else \
+                                "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_1234567890#$%&*-;"
+        
+        length = len(user_data)
+        
+        return (
+            max_characters - length >= 0) and (
+            length - min_characters >= 0) and all(
+            char in allowed_characters for char in user_data)
     
 
 class LoginApp(customtkinter.CTk):
@@ -110,5 +142,7 @@ class LoginApp(customtkinter.CTk):
             segmented_button_selected_hover_color=("#4F5263","#4F5263"), corner_radius=20)
         self.tabview.grid(row=0, column=1, padx=20, pady=10)
         
-app = LoginApp()
-app.mainloop()
+        
+if __name__ == "__main__":
+    app = LoginApp()
+    app.mainloop()
