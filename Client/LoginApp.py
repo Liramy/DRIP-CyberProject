@@ -126,8 +126,18 @@ class Tabs(customtkinter.CTkTabview):
     
 
 class LoginApp(customtkinter.CTk):
-    def __init__(self):
+    """The login and register frames packed as an app
+
+        Parameters
+        ---------------------------
+        command - A command used to send data to the server
+        this command needs to be sending server user info 
+        and getting confirmation as a result
+    """
+    def __init__(self, command):
         super().__init__()
+        
+        self.command = command
         
         self.title("ClearView Login")
         self.geometry("700x450")
