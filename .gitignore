@@ -1,3 +1,7 @@
 .idea
 Server/ProjectVariables.py
 Client/fontPrint.py
+Server/Countvectorizer.vct
+Server/PropDetectionModel.mdl
+Server/__pycache__
+Server/.vector_cache
