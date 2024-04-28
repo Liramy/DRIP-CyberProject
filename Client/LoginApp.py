@@ -154,5 +154,5 @@ class LoginApp(customtkinter.CTk):
         
         
 if __name__ == "__main__":
-    app = LoginApp()
+    app = LoginApp(None)
     app.mainloop()
