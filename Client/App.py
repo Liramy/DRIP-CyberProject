@@ -76,6 +76,10 @@ class App(customtkinter.CTk):
                                                                 command=self.change_subject, fg_color=("gray60", "#26272E"),
                                                                 button_color=("gray50","#222227"), button_hover_color=("#4F5263","#4F5263"))
         self.library_select.grid(row=1, column=0, padx=10, pady=10)
+        
+        self.library_text = customtkinter.CTkTextbox(self.home_frame)
+        self.library_text.grid(row=1, column=1, padx=10, pady=10)
+        self.library_text.configure(state="disabled")
 
         # create second frame
         self.second_frame = customtkinter.CTkFrame(self, corner_radius=0, fg_color="transparent")
