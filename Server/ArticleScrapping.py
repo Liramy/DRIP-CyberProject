@@ -7,15 +7,14 @@ from urllib.parse import urlparse, parse_qs, unquote
 
 
 class ArticleScrapper:
-    """Define an object of type <ArticleFinder> for getting articles off the internet
+    """Define an object of type `ArticleFinder` for getting articles off the internet
 
-    :param subject: Subject of the searching function - String
-    :param period: The period of time for the search (i.e. 7d, 2m, 5y) - String
-    :param max_results: max number of results for search - int
-    :param language: Language with the abbreviation (En, Es ...) - String
-
-    :returns: An object for getting articles of the internet
-    :rtype: ArticleScrapper
+    Parameters
+    ---------------------------------------------------
+    subject: Subject of the searching function - `String`
+    period: The period of time for the search (i.e. 7d, 2m, 5y) - `String`
+    max_results: max number of results for search - `int`
+    language: Language with the abbreviation (En, Es ...) - `String`
     """
 
     def __init__(self, subject, period, max_results=25, language='En'):
