@@ -27,7 +27,8 @@ class App(customtkinter.CTk):
         
         text_font = customtkinter.CTkFont(family="Segoe UI", size=15)
         label_font = customtkinter.CTkFont(family="Segoe UI", size=30, weight="bold")
-
+        entry_font = customtkinter.CTkFont(family="Segoe UI", size=20)
+        explain_font = customtkinter.CTkFont(family="Segoe UI", size=25)
         
         self.logo_image = customtkinter.CTkImage(light_image=Image.open(os.path.join(image_path, "logo-no-background.png")), 
                                                  dark_image=Image.open(os.path.join(image_path, "logo-white-no-background.png")),
@@ -37,6 +38,9 @@ class App(customtkinter.CTk):
                                                  dark_image=Image.open(os.path.join(image_path, "home_light.png")), size=(20, 20))
         self.search_image = customtkinter.CTkImage(dark_image=Image.open(os.path.join(image_path, "search-dark.png")),
                                                      light_image=Image.open(os.path.join(image_path, "search-light.png")), size=(25, 25))
+
+        self.search_image_button = customtkinter.CTkImage(dark_image=Image.open(os.path.join(image_path, "search-dark.png")),
+                                                     light_image=Image.open(os.path.join(image_path, "search-light.png")), size=(75, 75))
 
         # create navigation frame
         self.navigation_frame = customtkinter.CTkFrame(self, corner_radius=0)
@@ -77,15 +81,30 @@ class App(customtkinter.CTk):
                                                                 button_color=("gray50","#222227"), button_hover_color=("#4F5263","#4F5263"))
         self.library_select.grid(row=1, column=0, padx=10, pady=10)
         
-        self.library_text = customtkinter.CTkTextbox(self.home_frame)
-        self.library_text.grid(row=1, column=1, padx=10, pady=10)
+        self.library_text = customtkinter.CTkTextbox(self.home_frame, width=220, height=300)
+        self.library_text.grid(row=1, rowspan=2, column=1, padx=10, pady=10)
         self.library_text.configure(state="disabled")
 
         # create second frame
-        self.second_frame = customtkinter.CTkFrame(self, corner_radius=0, fg_color="transparent")
+        self.search_frame = customtkinter.CTkFrame(self, corner_radius=0, fg_color="transparent")
+        self.search_frame.grid_columnconfigure(0, weight=1)
+        self.search_frame.grid_rowconfigure(2, weight=1)
 
-        # create third frame
-        self.third_frame = customtkinter.CTkFrame(self, corner_radius=0, fg_color="transparent")
+        self.search_bar = customtkinter.CTkEntry(self.search_frame, width=400, height=50,
+                                                 font=entry_font, placeholder_text="Search subject")
+        self.search_bar.grid(row=0, column=0, padx=20, pady=20)
+        
+        self.search_button = customtkinter.CTkButton(self.search_frame, width=100, height=100,
+                                                     fg_color="transparent", hover_color=("#4F5263","#4F5263"),
+                                                     image=self.search_image_button, text="")
+        self.search_button.grid(row=1, column=0)
+        
+        self.search_label = customtkinter.CTkLabel(self.search_frame, text=
+                                                   "Search the subject you wish to learn more about.\n" + 
+                                                   'For example: "The movie `Kung Fu Panda`"\n' +
+                                                   'Another: "The science behind nueral network"', font=explain_font, 
+                                                   width=400, height=400, wraplength=400)
+        self.search_label.grid(row=2, column=0,padx=20, pady=0)
 
         # select default frame
         self.select_frame_by_name("home")
@@ -100,23 +119,16 @@ class App(customtkinter.CTk):
             self.home_frame.grid(row=0, column=1, sticky="nsew")
         else:
             self.home_frame.grid_forget()
-        if name == "frame_2":
-            self.second_frame.grid(row=0, column=1, sticky="nsew")
+        if name == "search":
+            self.search_frame.grid(row=0, column=1, sticky="nsew")
         else:
-            self.second_frame.grid_forget()
-        if name == "frame_3":
-            self.third_frame.grid(row=0, column=1, sticky="nsew")
-        else:
-            self.third_frame.grid_forget()
+            self.search_frame.grid_forget()
 
     def home_button_event(self):
         self.select_frame_by_name("home")
 
-    def frame_2_button_event(self):
-        self.select_frame_by_name("frame_2")
-
     def search_frame_button_event(self):
-        self.select_frame_by_name("frame_3")
+        self.select_frame_by_name("search")
         
     def change_subject(self, new_subject):
         pass
