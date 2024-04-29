@@ -52,7 +52,8 @@ class Tabs(customtkinter.CTkTabview):
         # Login button
         self.login_button = customtkinter.CTkButton(self.tab("Login"), width=200, height= 75,
                                                     font=label_font, fg_color=("#C8CEC6", "#1E2025"),
-                                                    corner_radius=20, text="Log In", command=self.log_in)
+                                                    corner_radius=20, text="Log In", command=self.log_in, 
+                                                    hover_color=("gray30","#4F5263"))
         
         self.login_button.grid(row=3, column=0, padx=0, pady=50)
         
@@ -86,7 +87,8 @@ class Tabs(customtkinter.CTkTabview):
         # Register button
         self.register_button = customtkinter.CTkButton(self.tab("Register"), width=200, height= 75,
                                                     font=label_font, fg_color=("#C8CEC6", "#1E2025"),
-                                                    corner_radius=20, text="Register", command=self.register)
+                                                    corner_radius=20, text="Register", command=self.register, 
+                                                    hover_color=("gray30","#4F5263"))
         self.register_button.grid(row=4, column=0, padx=0, pady=30)
         
     def log_in(self):
