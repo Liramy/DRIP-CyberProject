@@ -1,6 +1,7 @@
 import os
 import tkinter
 from typing import Tuple
+import pickle
 
 import customtkinter
 from tkinter import ttk
@@ -12,9 +13,11 @@ customtkinter.set_appearance_mode("dark")  # Modes: "System" (standard), "Dark",
 customtkinter.set_default_color_theme("blue")  # Themes: "blue" (standard), "green", "dark-blue"
 
 class Tabs(customtkinter.CTkTabview):
-    def __init__(self, master, **kwargs):
+    def __init__(self, master, sock, **kwargs):
         super().__init__(master, **kwargs)
 
+        self.socket = sock
+        
         # create tabs
         self.add("Login")
         self.add("Register")
@@ -96,8 +99,12 @@ class Tabs(customtkinter.CTkTabview):
         password = self.password_login.get()
         
         if self.validation(username) and self.validation(password, False):
-            print("In")
+            data = pickle.dumps({"Log in":(username, password)})
+            self.socket.send(data)
+            answer = self.socket.recv(4096)
+            print(answer.decode('utf-8'))
         return
+    
         
     def register(self):
         username = self.username_register.get()
@@ -136,10 +143,10 @@ class LoginApp(customtkinter.CTk):
         this command needs to be sending server user info 
         and getting confirmation as a result
     """
-    def __init__(self, command):
+    def __init__(self, sock):
         super().__init__()
         
-        self.command = command
+        self.socket = sock
         
         self.title("ClearView Login")
         self.geometry("700x450")
@@ -149,12 +156,9 @@ class LoginApp(customtkinter.CTk):
         self.grid_columnconfigure(1, weight=1)
         
         self.tabview = Tabs(
-            master=self, height=400, width=400, 
+            master=self, height=400, width=400, sock = self.socket, 
             fg_color=("#E9EFE7", "#26272E"), segmented_button_selected_color=("#2A2C35", "#2A2C35"),
             segmented_button_selected_hover_color=("#4F5263","#4F5263"), corner_radius=20)
         self.tabview.grid(row=0, column=1, padx=20, pady=10)
         
         
-if __name__ == "__main__":
-    app = LoginApp(None)
-    app.mainloop()
