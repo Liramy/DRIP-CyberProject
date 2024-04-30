@@ -6,7 +6,7 @@ def handle_clients(client, addr):
 
 host = '0.0.0.0'
 port = 8080
-server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+server = socket.socket()
 server.bind((host, port))
 server.listen(5)
 
@@ -21,4 +21,3 @@ while True:
     t.start()
     
     threads.append(t)
-    print("threading.active_count()")

@@ -1,7 +1,11 @@
 import socket
+import ip_login
 
-client_socket = socket.socket
-Server_IP = "0.0.0.0" # Placeholder until we have an actual ip adress
-Server_PORT = 8202
+client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+server_IP = "26.58.20.252"
+server_PORT = 8080
 
-# TODO: Create the login app here and a function for giving and relying data
+IP_app = ip_login.IP_Login(client_socket)
+IP_app.mainloop()
+
+print("POOPY PAPI")
