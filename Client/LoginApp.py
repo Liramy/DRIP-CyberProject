@@ -115,7 +115,10 @@ class Tabs(customtkinter.CTkTabview):
             self.validation(password, False)) and (
             password == password_confirm):
                 
-            print("In")
+            data = pickle.dumps({"Register":(username, password)})
+            self.socket.send(data)
+            answer = self.socket.recv(4096)
+            print(answer.decode('utf-8'))
         return
         
     def validation(self, user_data, is_username=True):

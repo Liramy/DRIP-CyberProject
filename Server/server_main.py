@@ -45,11 +45,18 @@ def handle_clients(client:socket.socket, addr):
         key = varkey
         
     t2 = threading.Thread(target=handle_requests, args=(client, addr))
+    users = get_users()
         
     if key == 'Log in':
-        client.send("Valid".encode('utf-8'))
-        t2.start()
+        for user in users:
+            if user[0] == var[key][0] and user[1] == var[key][1]:
+                client.send("Valid".encode('utf-8'))
+                t2.start()
+                return
+        client.send("Invalid".encode('utf-8'))
+        
     elif key == 'Register':
+        insert_user(var[key])
         client.send("Valid".encode('utf-8'))
         t2.start()
     else:
