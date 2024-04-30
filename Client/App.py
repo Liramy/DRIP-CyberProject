@@ -6,15 +6,17 @@ from tkinter import ttk
 from tkinter import *
 
 from PIL import Image, ImageTk
+import pickle
 
 customtkinter.set_appearance_mode("System")  # Modes: "System" (standard), "Dark", "Light"
 customtkinter.set_default_color_theme("blue")  # Themes: "blue" (standard), "green", "dark-blue"
 
 
 class App(customtkinter.CTk):
-    def __init__(self):
+    def __init__(self, sock):
         super().__init__()
 
+        self.socket = sock
         self.title("ClearView.py")
         self.geometry("700x450")
 
@@ -28,7 +30,6 @@ class App(customtkinter.CTk):
         text_font = customtkinter.CTkFont(family="Segoe UI", size=15)
         label_font = customtkinter.CTkFont(family="Segoe UI", size=30, weight="bold")
         entry_font = customtkinter.CTkFont(family="Segoe UI", size=20)
-        explain_font = customtkinter.CTkFont(family="Segoe UI", size=25)
         
         self.logo_image = customtkinter.CTkImage(light_image=Image.open(os.path.join(image_path, "logo-no-background.png")), 
                                                  dark_image=Image.open(os.path.join(image_path, "logo-white-no-background.png")),
@@ -88,23 +89,28 @@ class App(customtkinter.CTk):
         # create second frame
         self.search_frame = customtkinter.CTkFrame(self, corner_radius=0, fg_color="transparent")
         self.search_frame.grid_columnconfigure(0, weight=1)
-        self.search_frame.grid_rowconfigure(2, weight=1)
+        self.search_frame.grid_rowconfigure(3, weight=1)
 
-        self.search_bar = customtkinter.CTkEntry(self.search_frame, width=400, height=50,
+        self.search_bar = customtkinter.CTkEntry(self.search_frame, width=400, height=50, justify="center",
                                                  font=entry_font, placeholder_text="Search subject")
         self.search_bar.grid(row=0, column=0, padx=20, pady=20)
+        
+        self.search_date = customtkinter.CTkEntry(self.search_frame, width=250, height=40,
+                                                  placeholder_text="Enter date: 3d, 4m, 6y", font=entry_font,
+                                                  justify="center")
+        self.search_date.grid(row=1, column=0, padx=20, pady=20)
         
         self.search_button = customtkinter.CTkButton(self.search_frame, width=100, height=100,
                                                      fg_color="transparent", hover_color=("#4F5263","#4F5263"),
                                                      image=self.search_image_button, text="")
-        self.search_button.grid(row=1, column=0)
+        self.search_button.grid(row=2, column=0, padx=20, pady=20)
         
         self.search_label = customtkinter.CTkLabel(self.search_frame, text=
                                                    "Search the subject you wish to learn more about.\n" + 
                                                    'For example: "The movie `Kung Fu Panda`"\n' +
-                                                   'Another: "The science behind nueral network"', font=explain_font, 
+                                                   'Another: "The science behind nueral network"', font=entry_font, 
                                                    width=400, height=400, wraplength=400)
-        self.search_label.grid(row=2, column=0,padx=20, pady=0)
+        self.search_label.grid(row=3, column=0,padx=20, pady=0)
 
         # select default frame
         self.select_frame_by_name("home")
@@ -135,8 +141,7 @@ class App(customtkinter.CTk):
 
     def change_appearance_mode_event(self, new_appearance_mode):
         customtkinter.set_appearance_mode(new_appearance_mode)
-
-
-if __name__ == "__main__":
-    app = App()
-    app.mainloop()
+        
+    def search_subject(self):
+        subject = self.search_bar.get()
+        data = pickle.dumps({"Search":subject})
