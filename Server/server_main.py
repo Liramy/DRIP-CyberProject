@@ -39,8 +39,26 @@ def handle_clients(client:socket.socket, addr):
     data = client.recv(4096)
     var = pickle.loads(data)
     print(var)
-    client.send("HOOOOO".encode('utf-8'))
     
+    key = ''
+    for varkey in var:
+        key = varkey
+        
+    t2 = threading.Thread(target=handle_requests, args=(client, addr))
+        
+    if key == 'Log in':
+        client.send("Valid".encode('utf-8'))
+        t2.start()
+    elif key == 'Register':
+        client.send("Valid".encode('utf-8'))
+        t2.start()
+    else:
+        client.send("Invalid".encode('utf-8'))
+        handle_clients(client=client, addr=addr)
+    
+def handle_requests(client:socket.socket, addr):
+    print("POOP")
+    pass
 
 create_table()
 
