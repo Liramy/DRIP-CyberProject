@@ -43,7 +43,9 @@ def handle_clients(client:socket.socket, addr):
     key = ''
     for varkey in var:
         key = varkey
-        
+    
+    print(var[key])
+    
     t2 = threading.Thread(target=handle_requests, args=(client, addr))
     users = get_users()
         
@@ -54,9 +56,10 @@ def handle_clients(client:socket.socket, addr):
                 t2.start()
                 return
         client.send("Invalid".encode('utf-8'))
+        handle_clients(client=client, addr=addr)
         
     elif key == 'Register':
-        insert_user(var[key])
+        insert_user(var[key][0], var[key][1])
         client.send("Valid".encode('utf-8'))
         t2.start()
     else:
@@ -64,7 +67,7 @@ def handle_clients(client:socket.socket, addr):
         handle_clients(client=client, addr=addr)
     
 def handle_requests(client:socket.socket, addr):
-    print("POOP")
+    print("Entered")
     pass
 
 create_table()

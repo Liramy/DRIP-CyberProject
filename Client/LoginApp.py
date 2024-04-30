@@ -13,10 +13,11 @@ customtkinter.set_appearance_mode("dark")  # Modes: "System" (standard), "Dark",
 customtkinter.set_default_color_theme("blue")  # Themes: "blue" (standard), "green", "dark-blue"
 
 class Tabs(customtkinter.CTkTabview):
-    def __init__(self, master, sock, **kwargs):
+    def __init__(self, master, sock, comm, **kwargs):
         super().__init__(master, **kwargs)
 
         self.socket = sock
+        self.command = comm
         
         # create tabs
         self.add("Login")
@@ -26,7 +27,7 @@ class Tabs(customtkinter.CTkTabview):
         self.tab("Register").grid_columnconfigure(0, weight=1)
 
         # Define the fonts used
-        label_font = customtkinter.CTkFont(family="Segoe UI", size=30)
+        self.label_font = customtkinter.CTkFont(family="Segoe UI", size=30)
         input_font = customtkinter.CTkFont(family="Segoe UI", size=15)
 
         #------------------------------------------------------------------------------
@@ -36,7 +37,7 @@ class Tabs(customtkinter.CTkTabview):
         self.label = customtkinter.CTkLabel(
             master=self.tab("Login"), 
             height=30, width=100, 
-            font=label_font, text="Log in", 
+            font=self.label_font, text="Log in", 
             text_color=("#26272E", "#E9EFE7"))
         self.label.grid(row=0, column=0, padx=0, pady=10)
         
@@ -54,7 +55,7 @@ class Tabs(customtkinter.CTkTabview):
         
         # Login button
         self.login_button = customtkinter.CTkButton(self.tab("Login"), width=200, height= 75,
-                                                    font=label_font, fg_color=("#C8CEC6", "#1E2025"),
+                                                    font=self.label_font, fg_color=("#C8CEC6", "#1E2025"),
                                                     corner_radius=20, text="Log In", command=self.log_in, 
                                                     hover_color=("gray30","#4F5263"))
         
@@ -65,7 +66,7 @@ class Tabs(customtkinter.CTkTabview):
         self.label = customtkinter.CTkLabel(
             master=self.tab("Register"), 
             height=30, width=100, 
-            font=label_font, text="Register", 
+            font=self.label_font, text="Register", 
             text_color=("#26272E", "#E9EFE7"))
         self.label.grid(row=0, column=0, padx=0, pady=10)
         
@@ -89,7 +90,7 @@ class Tabs(customtkinter.CTkTabview):
         
         # Register button
         self.register_button = customtkinter.CTkButton(self.tab("Register"), width=200, height= 75,
-                                                    font=label_font, fg_color=("#C8CEC6", "#1E2025"),
+                                                    font=self.label_font, fg_color=("#C8CEC6", "#1E2025"),
                                                     corner_radius=20, text="Register", command=self.register, 
                                                     hover_color=("gray30","#4F5263"))
         self.register_button.grid(row=4, column=0, padx=0, pady=30)
@@ -101,8 +102,17 @@ class Tabs(customtkinter.CTkTabview):
         if self.validation(username) and self.validation(password, False):
             data = pickle.dumps({"Log in":(username, password)})
             self.socket.send(data)
-            answer = self.socket.recv(4096)
-            print(answer.decode('utf-8'))
+            answer = self.socket.recv(4096).decode('utf-8')
+            if answer == 'Valid':
+                self.command()
+            else:
+                self.login_button.destroy()
+                self.login_button = customtkinter.CTkButton(self.tab("Login"), width=200, height= 75,
+                                                    font=self.label_font, fg_color=("#C8CEC6", "#1E2025"),
+                                                    corner_radius=20, text="Invalid username or password", command=self.log_in, 
+                                                    hover_color=("gray30","#4F5263"))
+        
+                self.login_button.grid(row=3, column=0, padx=0, pady=50)
         return
     
         
@@ -117,8 +127,16 @@ class Tabs(customtkinter.CTkTabview):
                 
             data = pickle.dumps({"Register":(username, password)})
             self.socket.send(data)
-            answer = self.socket.recv(4096)
-            print(answer.decode('utf-8'))
+            answer = self.socket.recv(4096).decode('utf-8')
+            if answer == 'Valid':
+                self.command()
+        else:
+            self.login_button.destroy()
+            self.register_button = customtkinter.CTkButton(self.tab("Register"), width=200, height= 75,
+                                                    font=self.label_font, fg_color=("#C8CEC6", "#1E2025"),
+                                                    corner_radius=20, text="Invalid username or password", command=self.register, 
+                                                    hover_color=("gray30","#4F5263"))
+            self.register_button.grid(row=4, column=0, padx=0, pady=30)
         return
         
     def validation(self, user_data, is_username=True):
@@ -161,7 +179,10 @@ class LoginApp(customtkinter.CTk):
         self.tabview = Tabs(
             master=self, height=400, width=400, sock = self.socket, 
             fg_color=("#E9EFE7", "#26272E"), segmented_button_selected_color=("#2A2C35", "#2A2C35"),
-            segmented_button_selected_hover_color=("#4F5263","#4F5263"), corner_radius=20)
+            segmented_button_selected_hover_color=("#4F5263","#4F5263"), corner_radius=20, comm = exit)
         self.tabview.grid(row=0, column=1, padx=20, pady=10)
+        
+    def exit(self):
+        self.destroy()
         
         
