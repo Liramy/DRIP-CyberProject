@@ -2,13 +2,12 @@ import customtkinter
 
 class IP_Login(customtkinter.CTk):
     
-    def __init__(self, sock):
+    def __init__(self, command):
         super().__init__()
-        
-        self.socket = sock
         
         self.title("IP configurration")
         self.geometry("700x450")
+        self.command = command
         
         # 4x1 grid
         self.columnconfigure(1, weight=1)
@@ -40,6 +39,5 @@ class IP_Login(customtkinter.CTk):
         IP = self.IP_entry.get()
         PORT = self.PORT_entry.get()
         PORT = int(PORT)
-        self.socket.connect((IP, PORT))
+        self.command(IP, PORT)
         self.destroy()
-        

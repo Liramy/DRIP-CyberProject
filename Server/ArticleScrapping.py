@@ -22,8 +22,8 @@ class ArticleScrapper:
         self.language = language
         self.period = period
 
-        self.model = joblib.load("PropDetectionModel.mdl")
-        self.count_vectorize = joblib.load("CountVectorizer.vct")
+        self.model = joblib.load("Server/PropDetectionModel.mdl")
+        self.count_vectorize = joblib.load("Server/CountVectorizer.vct")
 
         self.google_search = GoogleNews.GoogleNews(lang=self.language)
         self.google_search.enableException(True)
@@ -62,8 +62,8 @@ class ArticleScrapper:
 
     def create_propaganda_isolation(self):
         """Make an array of every article and the propaganda precentege within it"""
-        article_array = []
-        article_dict = {}
+        self.article_array = []
+        self.article_dict = {}
         for article_url in self.articleLinkList:
             try:
                 article = Article(article_url)
@@ -74,12 +74,15 @@ class ArticleScrapper:
                 # Split the text into an array of words, excluding specified characters
                 text = [sentence.strip() for sentence in article.text.split('.') if
                         sentence.strip() not in exclude_chars]
-                article_array.append(text)
-                article_dict[text[0]] = article_url
+                self.article_array.append(text)
+                self.article_dict[text[0]] = article_url
             except Exception as e:
                 pass
-        self.refactored_dict = {}
-        for article_text in article_array:
+        
+
+    def get_results(self):
+        self.refactored_dict = []
+        for article_text in self.article_array:
             text = article_text
             if len(article_text) < 3:
                 pass
@@ -88,11 +91,8 @@ class ArticleScrapper:
                 predictions = self.model.predict(x_value)
                 count_of_ones = sum(1 for value in predictions if value == 1)
                 average_prediction = (count_of_ones / len(predictions))
-                print(average_prediction)
-                url = article_dict[text[0]]
-                self.refactored_dict[url] = (text, average_prediction)
+                url = self.article_dict[text[0]]
+                self.refactored_dict.append((url, average_prediction))#[url] = (text, average_prediction)
             except Exception as e:
                 pass
-
-    def return_dict(self):
         return self.refactored_dict

@@ -1,6 +1,7 @@
 import pickle
 import socket
 import threading
+from ArticleScrapping import ArticleScrapper
 
 import sqlite3
 
@@ -14,8 +15,6 @@ def create_table():
                  (name TEXT, password TEXT)''')
     conn.commit()
     conn.close()
-
-
 
 # Function to insert a user into the database
 def insert_user(name, password):
@@ -38,22 +37,18 @@ def get_users():
 def handle_clients(client:socket.socket, addr):
     data = client.recv(4096)
     var = pickle.loads(data)
-    print(var)
     
     key = ''
     for varkey in var:
         key = varkey
     
-    print(var[key])
-    
-    t2 = threading.Thread(target=handle_requests, args=(client, addr))
     users = get_users()
         
     if key == 'Log in':
         for user in users:
             if user[0] == var[key][0] and user[1] == var[key][1]:
                 client.send("Valid".encode('utf-8'))
-                t2.start()
+                handle_clients(client=client, addr=addr)
                 return
         client.send("Invalid".encode('utf-8'))
         handle_clients(client=client, addr=addr)
@@ -61,14 +56,19 @@ def handle_clients(client:socket.socket, addr):
     elif key == 'Register':
         insert_user(var[key][0], var[key][1])
         client.send("Valid".encode('utf-8'))
-        t2.start()
+        handle_clients(client=client, addr=addr)
+    elif key == 'Search':
+        (subject, date) = (var[key])
+        scrapper = ArticleScrapper(subject=subject, period=date, 
+                                   max_results=25, language='En')
+        send_data = pickle.dumps(scrapper.get_results())
+        print("Start sending")
+        print(len(send_data))
+        client.send(send_data)
     else:
         client.send("Invalid".encode('utf-8'))
         handle_clients(client=client, addr=addr)
-    
-def handle_requests(client:socket.socket, addr):
-    print("Entered")
-    pass
+        
 
 create_table()
 

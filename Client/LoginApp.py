@@ -104,7 +104,7 @@ class Tabs(customtkinter.CTkTabview):
             self.socket.send(data)
             answer = self.socket.recv(4096).decode('utf-8')
             if answer == 'Valid':
-                self.command()
+                self.master.destroy()
             else:
                 self.login_button.destroy()
                 self.login_button = customtkinter.CTkButton(self.tab("Login"), width=200, height= 75,
@@ -129,7 +129,7 @@ class Tabs(customtkinter.CTkTabview):
             self.socket.send(data)
             answer = self.socket.recv(4096).decode('utf-8')
             if answer == 'Valid':
-                self.command()
+                self.master.destroy()
         else:
             self.login_button.destroy()
             self.register_button = customtkinter.CTkButton(self.tab("Register"), width=200, height= 75,

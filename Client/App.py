@@ -19,6 +19,8 @@ class App(customtkinter.CTk):
         self.socket = sock
         self.title("ClearView.py")
         self.geometry("700x450")
+        self.subject_list = ["subject"]
+        self.link_list = {"subject":[""]}
 
         # set grid layout 1x2
         self.grid_rowconfigure(0, weight=1)
@@ -77,7 +79,7 @@ class App(customtkinter.CTk):
                                                                    font=label_font)
         self.home_frame_large_image_label.grid(row=0, column=0, padx=20, pady=10)
 
-        self.library_select = customtkinter.CTkOptionMenu(self.home_frame, values=["Subject"],
+        self.library_select = customtkinter.CTkOptionMenu(self.home_frame, values=self.subject_list,
                                                                 command=self.change_subject, fg_color=("gray60", "#26272E"),
                                                                 button_color=("gray50","#222227"), button_hover_color=("#4F5263","#4F5263"))
         self.library_select.grid(row=1, column=0, padx=10, pady=10)
@@ -102,7 +104,8 @@ class App(customtkinter.CTk):
         
         self.search_button = customtkinter.CTkButton(self.search_frame, width=100, height=100,
                                                      fg_color="transparent", hover_color=("#4F5263","#4F5263"),
-                                                     image=self.search_image_button, text="")
+                                                     image=self.search_image_button, text="",
+                                                     command=self.search_subject)
         self.search_button.grid(row=2, column=0, padx=20, pady=20)
         
         self.search_label = customtkinter.CTkLabel(self.search_frame, text=
@@ -137,11 +140,39 @@ class App(customtkinter.CTk):
         self.select_frame_by_name("search")
         
     def change_subject(self, new_subject):
-        pass
+        self.library_text.configure(state="normal")
+        self.library_text.delete("0.0", "end")
+        
+        a = self.link_list[new_subject]
+        lines = []
+        if len(a) > 0:
+            for line in a:
+                lines.append(f"{line[0]}. \nPropaganda precent: {round(line[1], 3)*100}%")
+            text = '\n\n'.join(lines)
+        else: 
+            text = "No results found"
+        
+        self.library_text.insert("0.0", text=text)
 
     def change_appearance_mode_event(self, new_appearance_mode):
         customtkinter.set_appearance_mode(new_appearance_mode)
         
     def search_subject(self):
         subject = self.search_bar.get()
-        data = pickle.dumps({"Search":subject})
+        date = self.search_date.get()
+        data = pickle.dumps({"Search":(subject, date)})
+        self.socket.send(data)
+
+        raw_results = self.socket.recv(16384)
+        print("data recieved")
+        data = pickle.loads(raw_results)
+        
+        self.subject_list.append(subject)
+        self.link_list[subject] = data
+        
+        self.library_select.destroy()
+        self.library_select = customtkinter.CTkOptionMenu(self.home_frame, values=self.subject_list,
+                                                                command=self.change_subject, fg_color=("gray60", "#26272E"),
+                                                                button_color=("gray50","#222227"), button_hover_color=("#4F5263","#4F5263"))
+        self.library_select.grid(row=1, column=0, padx=10, pady=10)
+        
