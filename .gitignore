@@ -5,3 +5,5 @@ Server/Countvectorizer.vct
 Server/PropDetectionModel.mdl
 Server/__pycache__
 Server/.vector_cache
+Server/aaa.py
+Server/secret.key

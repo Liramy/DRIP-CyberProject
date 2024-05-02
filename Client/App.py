@@ -4,6 +4,7 @@ import tkinter
 import customtkinter
 from tkinter import ttk
 from tkinter import *
+import joblib
 
 from PIL import Image, ImageTk
 import pickle
@@ -114,6 +115,8 @@ class App(customtkinter.CTk):
                                                    'Another: "The science behind nueral network"', font=entry_font, 
                                                    width=400, height=400, wraplength=400)
         self.search_label.grid(row=3, column=0,padx=20, pady=0)
+        
+        self.load_subjects()
 
         # select default frame
         self.select_frame_by_name("home")
@@ -164,15 +167,35 @@ class App(customtkinter.CTk):
         self.socket.send(data)
 
         raw_results = self.socket.recv(16384)
-        print("data recieved")
         data = pickle.loads(raw_results)
         
         self.subject_list.append(subject)
         self.link_list[subject] = data
+        
+        self.save_subject()
         
         self.library_select.destroy()
         self.library_select = customtkinter.CTkOptionMenu(self.home_frame, values=self.subject_list,
                                                                 command=self.change_subject, fg_color=("gray60", "#26272E"),
                                                                 button_color=("gray50","#222227"), button_hover_color=("#4F5263","#4F5263"))
         self.library_select.grid(row=1, column=0, padx=10, pady=10)
+        
+    def save_subject(self):
+        joblib.dump(self.link_list, "SavedData.fv")
+        joblib.dump(self.subject_list, "SavedSubjectData.fv")
+        
+    def load_subjects(self):
+        try:
+            self.link_list = joblib.load("SavedData.fv")
+            self.subject_list = joblib.load("SavedSubjectData.fv")
+        except Exception as e:
+            self.link_list = {}
+            self.subject_list = ["Subject"]
+        finally:
+            self.library_select.destroy()
+            self.library_select = customtkinter.CTkOptionMenu(self.home_frame, values=self.subject_list,
+                                                                    command=self.change_subject, fg_color=("gray60", "#26272E"),
+                                                                    button_color=("gray50","#222227"), button_hover_color=("#4F5263","#4F5263"))
+            self.library_select.grid(row=1, column=0, padx=10, pady=10)
+        
         

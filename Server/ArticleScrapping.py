@@ -78,7 +78,6 @@ class ArticleScrapper:
                 self.article_dict[text[0]] = article_url
             except Exception as e:
                 pass
-        
 
     def get_results(self):
         self.refactored_dict = []
