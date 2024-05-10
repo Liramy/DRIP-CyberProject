@@ -1,97 +1,77 @@
+import concurrent.futures
+import requests
 import joblib
-import sklearn
 import GoogleNews
 from newspaper import Article
-import base64
-from urllib.parse import urlparse, parse_qs, unquote
+from sklearn.feature_extraction.text import CountVectorizer
+import string
+import numpy as np
 
-
-class ArticleScrapper:
-    """Define an object of type `ArticleFinder` for getting articles off the internet
-
-    Parameters
-    ---------------------------------------------------
-    subject: Subject of the searching function - `String`
-    period: The period of time for the search (i.e. 7d, 2m, 5y) - `String`
-    max_results: max number of results for search - `int`
-    language: Language with the abbreviation (En, Es ...) - `String`
-    """
-
-    def __init__(self, subject, period, max_results=25, language='En'):
+class ArticleScraper:
+    def __init__(self, subject, period, language='en', max_results=100):
         self.subject = subject
         self.language = language
         self.period = period
+        self.max_results = max_results
 
+        # Load model and vectorizer
         self.model = joblib.load("Server/PropDetectionModel.mdl")
-        self.count_vectorize = joblib.load("Server/CountVectorizer.vct")
+        self.count_vectorizer = joblib.load("Server/CountVectorizer.vct")
 
-        self.google_search = GoogleNews.GoogleNews(lang=self.language)
-        self.google_search.enableException(True)
-        self.google_search.setperiod(self.period)
-        self.google_search.set_encode('utf-8')
-        self.google_search.get_news(self.subject)
+        # Initialize Google News instance
+        self.google_news = GoogleNews.GoogleNews(lang=self.language, region="IL")
+        self.google_news.enableException(True)
+        self.google_news.setperiod(self.period)
+        self.google_news.search(self.subject)
+        
+        for i in range(1, 30):
+            self.google_news.get_page(i)
+        
+        # Fetch article links
+        self.article_links = self.google_news.get_links()[:self.max_results]
 
-        max_results = len(self.google_search.get_links()) if (
-                len(self.google_search.get_links()) < max_results) else max_results
-        self.articleLinkList = self.google_search.get_links()[:max_results]
-        for i in range(len(self.articleLinkList)):
-            self.articleLinkList[i] = self.decipher_url(self.articleLinkList[i])
+    def fetch_article(self, url):
+        try:
+            article = Article(url)
+            article.download()
+            article.parse()
+            return article.text
+        except Exception as e:
+            return None
 
-        self.create_propaganda_isolation()
+    def process_article(self, article_text):
+        if not article_text:
+            return None
 
-    def close(self):
-        """Close the scrapper to not waste cpu usage"""
-        self.google_search.clear()
+        # Remove punctuation and split text into sentences
+        translator = str.maketrans('', '', string.punctuation)
+        cleaned_text = article_text.translate(translator)
+        sentences = [sentence.strip() for sentence in cleaned_text.split('.') if sentence.strip()]
 
-    def decipher_url(self, encrypted_url):
-        """The url given is a Google News link, those links are inherently encrypted.
-           The encryption used by Google is a basic base64 cypher which is easy to decode.
-           We simply decypher the path, then the language and we get the finished link.
-        """
-        parsed_url = urlparse(encrypted_url)
-        encoded_path = parsed_url.path.split("/")[-1]
-        decoded_path = unquote(encoded_path)
+        # Vectorize text
+        x_value = self.count_vectorizer.transform(sentences)
+        predictions = self.model.predict(x_value)
 
-        query_params = parse_qs(parsed_url.query)
-
-        if 'hl' in query_params:
-            language = query_params['hl'][0]
-        else:
-            language = 'en'  # Default to English if 'hl' parameter is not present
-        return f'https://news.google.com/articles/{decoded_path}?hl={language}'
-
-    def create_propaganda_isolation(self):
-        """Make an array of every article and the propaganda precentege within it"""
-        self.article_array = []
-        self.article_dict = {}
-        for article_url in self.articleLinkList:
-            try:
-                article = Article(article_url)
-                article.download()
-                article.parse()
-                exclude_chars = ["", ".", "\n"]
-
-                # Split the text into an array of words, excluding specified characters
-                text = [sentence.strip() for sentence in article.text.split('.') if
-                        sentence.strip() not in exclude_chars]
-                self.article_array.append(text)
-                self.article_dict[text[0]] = article_url
-            except Exception as e:
-                pass
+        # Calculate propaganda percentage
+        count_of_ones = np.sum(predictions == 1)
+        average_prediction = count_of_ones / len(predictions)
+        return average_prediction
 
     def get_results(self):
-        self.refactored_dict = []
-        for article_text in self.article_array:
-            text = article_text
-            if len(article_text) < 3:
-                pass
-            try:
-                x_value = self.count_vectorize.transform(article_text)
-                predictions = self.model.predict(x_value)
-                count_of_ones = sum(1 for value in predictions if value == 1)
-                average_prediction = (count_of_ones / len(predictions))
-                url = self.article_dict[text[0]]
-                self.refactored_dict.append((url, average_prediction))#[url] = (text, average_prediction)
-            except Exception as e:
-                pass
-        return self.refactored_dict
+        results = []
+        result_dict = {}
+        with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+            future_to_url = {executor.submit(self.fetch_article, url): url for url in self.article_links}
+            for future in concurrent.futures.as_completed(future_to_url):
+                url = future_to_url[future]
+                try:
+                    article_text = future.result()
+                    propaganda_percentage = self.process_article(article_text)
+                    if propaganda_percentage is not None:
+                        results.append((url, propaganda_percentage))
+                except Exception as e:
+                    pass
+        return results
+
+    def close(self):
+        self.google_news.clear()
