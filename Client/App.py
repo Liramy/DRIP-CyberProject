@@ -165,7 +165,7 @@ class App(customtkinter.CTk):
         if len(subject) < 4:
             return
         
-        allowed_characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_-1234567890"
+        allowed_characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_-1234567890 "
         if not all(char in allowed_characters for char in subject):
             return
         

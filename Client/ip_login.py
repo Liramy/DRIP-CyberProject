@@ -8,6 +8,7 @@ class IP_Login(customtkinter.CTk):
         self.title("IP configurration")
         self.geometry("700x450")
         self.command = command
+        customtkinter.set_appearance_mode("light")
         
         # 4x1 grid
         self.columnconfigure(1, weight=1)
@@ -27,7 +28,7 @@ class IP_Login(customtkinter.CTk):
         
         self.PORT_entry = customtkinter.CTkEntry(master=self, width=300, height=50, fg_color=("gray80", "gray20"),
                                                justify="center", corner_radius=30, 
-                                               placeholder_text="Enter PORT here", font=text_font)
+                                               placeholder_text="Enter PORT here (8080 defualt)", font=text_font)
         self.PORT_entry.place(relx=0.5, rely=0.45, anchor=customtkinter.CENTER)
         
         self.button = customtkinter.CTkButton(master=self, width=300, height=75, fg_color=("gray80", "gray20"),

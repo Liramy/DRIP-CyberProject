@@ -7,7 +7,7 @@ from sklearn.feature_extraction.text import CountVectorizer
 import string
 import numpy as np
 
-class ArticleScraper:
+class ArticleScrapper:
     def __init__(self, subject, period, language='en', max_results=100):
         self.subject = subject
         self.language = language
