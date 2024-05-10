@@ -162,6 +162,13 @@ class App(customtkinter.CTk):
         
     def search_subject(self):
         subject = self.search_bar.get()
+        if len(subject) < 4:
+            return
+        
+        allowed_characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_-1234567890"
+        if not all(char in allowed_characters for char in subject):
+            return
+        
         date = self.search_date.get()
         data = pickle.dumps({"Search":(subject, date)})
         self.socket.send(data)
