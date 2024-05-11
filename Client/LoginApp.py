@@ -1,7 +1,7 @@
 import os
 import tkinter
 from typing import Tuple
-import pickle
+from EncMethod import Kdot
 
 import customtkinter
 from tkinter import ttk
@@ -20,6 +20,7 @@ class Tabs(customtkinter.CTkTabview):
         # create tabs
         self.add("Login")
         self.add("Register")
+        self.kdot = Kdot()
         
         self.tab("Login").grid_columnconfigure(0, weight=1)
         self.tab("Register").grid_columnconfigure(0, weight=1)
@@ -98,7 +99,7 @@ class Tabs(customtkinter.CTkTabview):
         password = self.password_login.get()
         
         if self.validation(username) and self.validation(password, False):
-            data = pickle.dumps({"Log in":(username, password)})
+            data = self.kdot.encrypt_obj({"Log in":(username, password)}) #pickle.dumps({"Log in":(username, password)})
             self.socket.send(data)
             answer = self.socket.recv(4096).decode('utf-8')
             if answer == 'Valid':
@@ -123,7 +124,7 @@ class Tabs(customtkinter.CTkTabview):
             self.validation(password, False)) and (
             password == password_confirm):
                 
-            data = pickle.dumps({"Register":(username, password)})
+            data = self.kdot.encrypt_obj({"Register":(username, password)})#pickle.dumps({"Register":(username, password)})
             self.socket.send(data)
             answer = self.socket.recv(4096).decode('utf-8')
             if answer == 'Valid':
