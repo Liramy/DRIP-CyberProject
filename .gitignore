@@ -7,3 +7,4 @@ Server/__pycache__
 Server/.vector_cache
 Server/aaa.py
 Server/secret.key
+chat-key.key
