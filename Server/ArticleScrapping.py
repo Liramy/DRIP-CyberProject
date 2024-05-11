@@ -42,11 +42,6 @@ class ArticleScrapper:
     def process_article(self, article_text):
         if not article_text:
             return None
-
-        # Remove punctuation and split text into sentences
-        translator = str.maketrans('', '', string.punctuation)
-        cleaned_text = article_text.translate(translator)
-        sentences = [sentence.strip() for sentence in cleaned_text.split('.') if sentence.strip()]
         
         exclude_chars = ["", ".", "\n"]
         text = [sentence.strip() for sentence in article_text.split('.') if sentence.strip() not in exclude_chars]
