@@ -1,4 +1,4 @@
-import pickle
+from EncMethod import Kdot
 import socket
 import threading
 from ArticleScrapping import ArticleScrapper
@@ -81,9 +81,9 @@ def clear_users_table():
     conn.commit()
     conn.close()
 
-def handle_clients(client:socket.socket, addr):
+def handle_clients(client:socket.socket, addr, kdot:Kdot):
     data = client.recv(4096)
-    var = pickle.loads(data)
+    var = kdot.decrypt_obj(data)#pickle.loads(data)
     
     key = ''
     for varkey in var:
@@ -108,7 +108,7 @@ def handle_clients(client:socket.socket, addr):
         (subject, date) = (var[key])
         scrapper = ArticleScrapper(subject=subject, period=date, 
                                    max_results=25, language='En')
-        send_data = pickle.dumps(scrapper.get_results())
+        send_data = kdot.encrypt_obj(scrapper.get_results())#pickle.dumps(scrapper.get_results())
         client.send(send_data)
     else:
         client.send("Invalid".encode('utf-8'))
@@ -126,11 +126,12 @@ server.listen(5)
 print(socket.gethostbyname(socket.gethostname()))
 
 threads = []
+kdot = Kdot()
 
 while True:
     (client_socket, address) = server.accept()
     
-    t = threading.Thread(target=handle_clients, args=(client_socket, address))
+    t = threading.Thread(target=handle_clients, args=(client_socket, address, kdot))
     t.start()
     
     threads.append(t)
