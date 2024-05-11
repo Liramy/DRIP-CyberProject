@@ -24,7 +24,7 @@ class ArticleScrapper:
         self.google_news.setperiod(self.period)
         self.google_news.search(self.subject)
         
-        for i in range(1, 30):
+        for i in range(1, 10):
             self.google_news.get_page(i)
         
         # Fetch article links
@@ -47,19 +47,24 @@ class ArticleScrapper:
         translator = str.maketrans('', '', string.punctuation)
         cleaned_text = article_text.translate(translator)
         sentences = [sentence.strip() for sentence in cleaned_text.split('.') if sentence.strip()]
+        print(sentences)
 
         # Vectorize text
-        x_value = self.count_vectorizer.transform(sentences)
-        predictions = self.model.predict(x_value)
+        predictions = []
+        for sentence in sentences:
+            x_value = self.count_vectorizer.transform(sentence)
+            pred = self.model.predict(x_value)
+            predictions.append(pred)
 
         # Calculate propaganda percentage
-        count_of_ones = np.sum(predictions == 1)
-        average_prediction = count_of_ones / len(predictions)
+        sum = 0
+        for pred in predictions:
+            sum += pred
+        average_prediction = sum / len(predictions)
         return average_prediction
 
     def get_results(self):
         results = []
-        result_dict = {}
         with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
             future_to_url = {executor.submit(self.fetch_article, url): url for url in self.article_links}
             for future in concurrent.futures.as_completed(future_to_url):
@@ -75,3 +80,7 @@ class ArticleScrapper:
 
     def close(self):
         self.google_news.clear()
+
+
+aa = ArticleScrapper("Racism", "1y")
+print(aa.get_results())
