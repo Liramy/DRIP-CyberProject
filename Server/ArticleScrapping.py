@@ -7,7 +7,7 @@ from sklearn.feature_extraction.text import CountVectorizer
 import string
 import numpy as np
 
-class ArticleScraper:
+class ArticleScrapper:
     def __init__(self, subject, period, language='en', max_results=100):
         self.subject = subject
         self.language = language
@@ -24,7 +24,7 @@ class ArticleScraper:
         self.google_news.setperiod(self.period)
         self.google_news.search(self.subject)
         
-        for i in range(1, 30):
+        for i in range(1, 10):
             self.google_news.get_page(i)
         
         # Fetch article links
@@ -42,24 +42,21 @@ class ArticleScraper:
     def process_article(self, article_text):
         if not article_text:
             return None
-
-        # Remove punctuation and split text into sentences
-        translator = str.maketrans('', '', string.punctuation)
-        cleaned_text = article_text.translate(translator)
-        sentences = [sentence.strip() for sentence in cleaned_text.split('.') if sentence.strip()]
+        
+        exclude_chars = ["", ".", "\n"]
+        text = [sentence.strip() for sentence in article_text.split('.') if sentence.strip() not in exclude_chars]
 
         # Vectorize text
-        x_value = self.count_vectorizer.transform(sentences)
+        x_value = self.count_vectorizer.transform(text)
         predictions = self.model.predict(x_value)
 
         # Calculate propaganda percentage
-        count_of_ones = np.sum(predictions == 1)
+        count_of_ones = np.sum(1 for value in predictions if value == 1)    
         average_prediction = count_of_ones / len(predictions)
         return average_prediction
 
     def get_results(self):
         results = []
-        result_dict = {}
         with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
             future_to_url = {executor.submit(self.fetch_article, url): url for url in self.article_links}
             for future in concurrent.futures.as_completed(future_to_url):
@@ -75,3 +72,6 @@ class ArticleScraper:
 
     def close(self):
         self.google_news.clear()
+
+a = ArticleScrapper("WWE wrestlemania", "4m")
+print(a.get_results())

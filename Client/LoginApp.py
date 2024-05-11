@@ -1,7 +1,10 @@
 import os
 import tkinter
 from typing import Tuple
-import pickle
+import sys
+from cryptography.fernet import Fernet
+import json
+from os import path
 
 import customtkinter
 from tkinter import ttk
@@ -9,11 +12,9 @@ from tkinter import *
 
 from PIL import Image, ImageTk
 
-customtkinter.set_appearance_mode("dark")  # Modes: "System" (standard), "Dark", "Light"
-customtkinter.set_default_color_theme("blue")  # Themes: "blue" (standard), "green", "dark-blue"
 
 class Tabs(customtkinter.CTkTabview):
-    def __init__(self, master, sock, comm, **kwargs):
+    def __init__(self, master, sock, comm, key,**kwargs):
         super().__init__(master, **kwargs)
 
         self.socket = sock
@@ -22,6 +23,8 @@ class Tabs(customtkinter.CTkTabview):
         # create tabs
         self.add("Login")
         self.add("Register")
+
+        self.cipher_suite = Fernet(key)
         
         self.tab("Login").grid_columnconfigure(0, weight=1)
         self.tab("Register").grid_columnconfigure(0, weight=1)
@@ -100,7 +103,7 @@ class Tabs(customtkinter.CTkTabview):
         password = self.password_login.get()
         
         if self.validation(username) and self.validation(password, False):
-            data = pickle.dumps({"Log in":(username, password)})
+            data = self.encrypt_obj({"Log in":(username, password)}) #pickle.dumps({"Log in":(username, password)})
             self.socket.send(data)
             answer = self.socket.recv(4096).decode('utf-8')
             if answer == 'Valid':
@@ -125,7 +128,7 @@ class Tabs(customtkinter.CTkTabview):
             self.validation(password, False)) and (
             password == password_confirm):
                 
-            data = pickle.dumps({"Register":(username, password)})
+            data = self.encrypt_obj({"Register":(username, password)})#pickle.dumps({"Register":(username, password)})
             self.socket.send(data)
             answer = self.socket.recv(4096).decode('utf-8')
             if answer == 'Valid':
@@ -153,6 +156,33 @@ class Tabs(customtkinter.CTkTabview):
             max_characters - length >= 0) and (
             length - min_characters >= 0) and all(
             char in allowed_characters for char in user_data)
+            
+    def encrypt_obj(self, obj):
+        """Function for encrypting an object
+
+        Args:
+            obj (any): An object that you wish to transfer in sockets
+
+        Returns:
+            bytes: transferable string encrypted
+        """
+        serialized_obj = json.dumps(obj).encode()
+        encrypted_obj = self.cipher_suite.encrypt(serialized_obj)
+        return encrypted_obj
+
+    def decrypt_obj(self, enc):
+        """Function for decrypting an object
+
+        Args:
+            enc (bytes): Encrypted byte of an object
+
+        Returns:
+            any: Decrypted
+        """
+        print(type(enc))
+        decrypted_obj = self.cipher_suite.decrypt(enc)
+        deserialized_obj = json.loads(decrypted_obj.decode())
+        return deserialized_obj
     
 
 class LoginApp(customtkinter.CTk):
@@ -164,7 +194,7 @@ class LoginApp(customtkinter.CTk):
         this command needs to be sending server user info 
         and getting confirmation as a result
     """
-    def __init__(self, sock):
+    def __init__(self, sock, key):
         super().__init__()
         
         self.socket = sock
@@ -177,12 +207,13 @@ class LoginApp(customtkinter.CTk):
         self.grid_columnconfigure(1, weight=1)
         
         self.tabview = Tabs(
-            master=self, height=400, width=400, sock = self.socket, 
+            master=self, height=400, width=400, sock = self.socket, key=key, 
             fg_color=("#E9EFE7", "#26272E"), segmented_button_selected_color=("#2A2C35", "#2A2C35"),
             segmented_button_selected_hover_color=("#4F5263","#4F5263"), corner_radius=20, comm = exit)
         self.tabview.grid(row=0, column=1, padx=20, pady=10)
         
     def exit(self):
         self.destroy()
+        
         
         
