@@ -1,5 +1,4 @@
 import socket
-import pickle
 import ip_login
 from LoginApp import LoginApp
 from App import App
