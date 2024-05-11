@@ -5,9 +5,9 @@ import customtkinter
 from tkinter import ttk
 from tkinter import *
 import joblib
+from EncMethod import Kdot
 
 from PIL import Image, ImageTk
-import pickle
 
 customtkinter.set_appearance_mode("System")  # Modes: "System" (standard), "Dark", "Light"
 customtkinter.set_default_color_theme("blue")  # Themes: "blue" (standard), "green", "dark-blue"
@@ -22,6 +22,7 @@ class App(customtkinter.CTk):
         self.geometry("700x450")
         self.subject_list = ["subject"]
         self.link_list = {"subject":[""]}
+        self.kdot = Kdot()
 
         # set grid layout 1x2
         self.grid_rowconfigure(0, weight=1)
@@ -170,11 +171,11 @@ class App(customtkinter.CTk):
             return
         
         date = self.search_date.get()
-        data = pickle.dumps({"Search":(subject, date)})
+        data = self.kdot.encrypt_obj({"Search":(subject, date)})#pickle.dumps({"Search":(subject, date)})
         self.socket.send(data)
 
         raw_results = self.socket.recv(16384)
-        data = pickle.loads(raw_results)
+        data = self.kdot.decrypt_obj(raw_results)#pickle.loads(raw_results)
         
         self.subject_list.append(subject)
         self.link_list[subject] = data
