@@ -47,20 +47,17 @@ class ArticleScrapper:
         translator = str.maketrans('', '', string.punctuation)
         cleaned_text = article_text.translate(translator)
         sentences = [sentence.strip() for sentence in cleaned_text.split('.') if sentence.strip()]
-        print(sentences)
+        
+        exclude_chars = ["", ".", "\n"]
+        text = [sentence.strip() for sentence in article_text.split('.') if sentence.strip() not in exclude_chars]
 
         # Vectorize text
-        predictions = []
-        for sentence in sentences:
-            x_value = self.count_vectorizer.transform(sentence)
-            pred = self.model.predict(x_value)
-            predictions.append(pred)
+        x_value = self.count_vectorizer.transform(text)
+        predictions = self.model.predict(x_value)
 
         # Calculate propaganda percentage
-        sum = 0
-        for pred in predictions:
-            sum += pred
-        average_prediction = sum / len(predictions)
+        count_of_ones = np.sum(1 for value in predictions if value == 1)    
+        average_prediction = count_of_ones / len(predictions)
         return average_prediction
 
     def get_results(self):
@@ -80,3 +77,6 @@ class ArticleScrapper:
 
     def close(self):
         self.google_news.clear()
+
+a = ArticleScrapper("WWE wrestlemania", "4m")
+print(a.get_results())
