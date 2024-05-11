@@ -80,7 +80,3 @@ class ArticleScrapper:
 
     def close(self):
         self.google_news.clear()
-
-
-aa = ArticleScrapper("Racism", "1y")
-print(aa.get_results())

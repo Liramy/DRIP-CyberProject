@@ -51,9 +51,9 @@ def create_table():
     conn = sqlite3.connect('Server/users.db')  # Connect to or create the database
     c = conn.cursor()  # Create a cursor object to execute SQL commands
 
-    # Create a table named 'users' with columns 'id', 'name', and 'age'
+    # Create a table named 'users' with columns 'id', 'name', and 'password'
     c.execute('''CREATE TABLE IF NOT EXISTS users
-                 (id INTEGER PRIMARY KEY, name TEXT, age INTEGER)''')
+                 (id INTEGER PRIMARY KEY, name TEXT, Password TEXT)''')
 
     conn.commit()  # Commit changes
     conn.close()   # Close connection
@@ -62,7 +62,7 @@ def create_table():
 def insert_user(name, password):
     conn = sqlite3.connect('Server/users.db')
     c = conn.cursor()
-    c.execute("INSERT INTO users (name, age) VALUES (?, ?)", (name, password))
+    c.execute("INSERT INTO users (name, password) VALUES (?, ?)", (name, password))
     conn.commit()
     conn.close()
 
@@ -134,14 +134,16 @@ def handle_clients(client:socket.socket, addr, cipher_suite):
         handle_clients(client=client, addr=addr, cipher_suite=cipher_suite)
     elif key == 'Search':
         (subject, date) = (var[key])
-        scrapper = ArticleScrapper(subject=subject, period=date, 
-                                   max_results=25, language='En')
-        send_data = encrypt_obj(scrapper.get_results(), cipher_suite)#pickle.dumps(scrapper.get_results())
+        try:
+            scrapper = ArticleScrapper(subject=subject, period=date, 
+                                    max_results=25, language='En')
+            send_data = encrypt_obj(scrapper.get_results(), cipher_suite)#pickle.dumps(scrapper.get_results())
+        except:
+            send_data = encrypt_obj("Too many requests")
         client.send(send_data)
     else:
         client.send("Invalid".encode('utf-8'))
         handle_clients(client=client, addr=addr, cipher_suite=cipher_suite)
-        
         
 create_table()
     
