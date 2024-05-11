@@ -5,7 +5,11 @@ import customtkinter
 from tkinter import ttk
 from tkinter import *
 import joblib
-from EncMethod import Kdot
+import sys
+import sys
+from cryptography.fernet import Fernet
+import json
+from os import path
 
 from PIL import Image, ImageTk
 
@@ -14,7 +18,7 @@ customtkinter.set_default_color_theme("blue")  # Themes: "blue" (standard), "gre
 
 
 class App(customtkinter.CTk):
-    def __init__(self, sock):
+    def __init__(self, sock, key):
         super().__init__()
 
         self.socket = sock
@@ -22,7 +26,7 @@ class App(customtkinter.CTk):
         self.geometry("700x450")
         self.subject_list = ["subject"]
         self.link_list = {"subject":[""]}
-        self.kdot = Kdot()
+        self.cipher_suite = Fernet(key)
 
         # set grid layout 1x2
         self.grid_rowconfigure(0, weight=1)
@@ -171,11 +175,11 @@ class App(customtkinter.CTk):
             return
         
         date = self.search_date.get()
-        data = self.kdot.encrypt_obj({"Search":(subject, date)})#pickle.dumps({"Search":(subject, date)})
+        data = self.encrypt_obj({"Search":(subject, date)})#pickle.dumps({"Search":(subject, date)})
         self.socket.send(data)
 
         raw_results = self.socket.recv(16384)
-        data = self.kdot.decrypt_obj(raw_results)#pickle.loads(raw_results)
+        data = self.decrypt_obj(raw_results)#pickle.loads(raw_results)
         
         self.subject_list.append(subject)
         self.link_list[subject] = data
@@ -205,5 +209,33 @@ class App(customtkinter.CTk):
                                                                     command=self.change_subject, fg_color=("gray60", "#26272E"),
                                                                     button_color=("gray50","#222227"), button_hover_color=("#4F5263","#4F5263"))
             self.library_select.grid(row=1, column=0, padx=10, pady=10)
+            
+    def encrypt_obj(self, obj):
+        """Function for encrypting an object
+
+        Args:
+            obj (any): An object that you wish to transfer in sockets
+
+        Returns:
+            bytes: transferable string encrypted
+        """
+        serialized_obj = json.dumps(obj).encode()
+        encrypted_obj = self.cipher_suite.encrypt(serialized_obj)
+        return encrypted_obj
+
+    def decrypt_obj(self, enc):
+        """Function for decrypting an object
+
+        Args:
+            enc (bytes): Encrypted byte of an object
+
+        Returns:
+            any: Decrypted
+        """
+        print(type(enc))
+        decrypted_obj = self.cipher_suite.decrypt(enc)
+        deserialized_obj = json.loads(decrypted_obj.decode())
+        return deserialized_obj
+        
         
         

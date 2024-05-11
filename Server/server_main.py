@@ -1,8 +1,10 @@
-from EncMethod import Kdot
+import json
 import socket
 import threading
 from ArticleScrapping import ArticleScrapper
 from os import path
+import sys
+import os
 
 import sqlite3
 
@@ -30,17 +32,17 @@ def encrypt_user_data(user_data):
     """
     Encrypts a message
     """
-    key = load_key()
+    user_key = load_key()
     encoded_message = user_data.encode()
-    f = Fernet(key)
+    f = Fernet(user_key)
     return f.encrypt(encoded_message)
     
 def decrypt_user_data(encoded_user_data):
     """
     Decrypt given data
     """
-    key = load_key()
-    f = Fernet(key)
+    user_key = load_key()
+    f = Fernet(user_key)
     decoded_mesage = f.decrypt(encoded_user_data)
     return decoded_mesage.decode()
 
@@ -57,10 +59,10 @@ def create_table():
     conn.close()   # Close connection
 
 # Function to insert a user into the database
-def insert_user(name, age):
+def insert_user(name, password):
     conn = sqlite3.connect('Server/users.db')
     c = conn.cursor()
-    c.execute("INSERT INTO users (name, age) VALUES (?, ?)", (name, age))
+    c.execute("INSERT INTO users (name, age) VALUES (?, ?)", (name, password))
     conn.commit()
     conn.close()
 
@@ -80,10 +82,36 @@ def clear_users_table():
     c.execute("DELETE FROM users")
     conn.commit()
     conn.close()
+    
+def encrypt_obj(obj, cipher_suite):
+        """Function for encrypting an object
 
-def handle_clients(client:socket.socket, addr, kdot:Kdot):
+        Args:
+            obj (any): An object that you wish to transfer in sockets
+
+        Returns:
+            bytes: transferable string encrypted
+        """
+        serialized_obj = json.dumps(obj).encode()
+        encrypted_obj = cipher_suite.encrypt(serialized_obj)
+        return encrypted_obj
+
+def decrypt_obj(enc, cipher_suite):
+    """Function for decrypting an object
+
+    Args:
+        enc (bytes): Encrypted byte of an object
+
+    Returns:
+        any: Decrypted
+    """
+    decrypted_obj = cipher_suite.decrypt(enc)
+    deserialized_obj = json.loads(decrypted_obj.decode())
+    return deserialized_obj
+
+def handle_clients(client:socket.socket, addr, cipher_suite):
     data = client.recv(4096)
-    var = kdot.decrypt_obj(data)#pickle.loads(data)
+    var = decrypt_obj(data, cipher_suite=cipher_suite)#pickle.loads(data)
     
     key = ''
     for varkey in var:
@@ -95,24 +123,24 @@ def handle_clients(client:socket.socket, addr, kdot:Kdot):
         for user in users:
             if decrypt_user_data(user[1]) == (var[key][0]) and decrypt_user_data(user[2]) == (var[key][1]):
                 client.send("Valid".encode('utf-8'))
-                handle_clients(client=client, addr=addr)
+                handle_clients(client=client, addr=addr, cipher_suite=cipher_suite)
                 return
         client.send("Invalid".encode('utf-8'))
-        handle_clients(client=client, addr=addr)
+        handle_clients(client=client, addr=addr, cipher_suite=cipher_suite)
         
     elif key == 'Register':
         insert_user(encrypt_user_data(var[key][0]), encrypt_user_data(var[key][1]))
         client.send("Valid".encode('utf-8'))
-        handle_clients(client=client, addr=addr)
+        handle_clients(client=client, addr=addr, cipher_suite=cipher_suite)
     elif key == 'Search':
         (subject, date) = (var[key])
         scrapper = ArticleScrapper(subject=subject, period=date, 
                                    max_results=25, language='En')
-        send_data = kdot.encrypt_obj(scrapper.get_results())#pickle.dumps(scrapper.get_results())
+        send_data = encrypt_obj(scrapper.get_results(), cipher_suite)#pickle.dumps(scrapper.get_results())
         client.send(send_data)
     else:
         client.send("Invalid".encode('utf-8'))
-        handle_clients(client=client, addr=addr)
+        handle_clients(client=client, addr=addr, cipher_suite=cipher_suite)
         
         
 create_table()
@@ -126,12 +154,20 @@ server.listen(5)
 print(socket.gethostbyname(socket.gethostname()))
 
 threads = []
-kdot = Kdot()
+if not path.exists("chat-key.key"):
+            key = Fernet.generate_key()
+            if not path.exists("chat-key.key"):
+                with open("chat-key.key", "wb") as key_file:
+                    key_file.write(key)
+else:
+    key = open("chat-key.key", "rb").read()
+
+cipher_suite = Fernet(key)
 
 while True:
     (client_socket, address) = server.accept()
     
-    t = threading.Thread(target=handle_clients, args=(client_socket, address, kdot))
+    t = threading.Thread(target=handle_clients, args=(client_socket, address, cipher_suite))
     t.start()
     
     threads.append(t)
