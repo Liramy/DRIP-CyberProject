@@ -72,6 +72,3 @@ class ArticleScrapper:
 
     def close(self):
         self.google_news.clear()
-
-a = ArticleScrapper("WWE wrestlemania", "4m")
-print(a.get_results())
