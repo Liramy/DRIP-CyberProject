@@ -13,7 +13,7 @@ from tkinter import *
 from PIL import Image, ImageTk
 
 
-class Tabs(customtkinter.CTkTabview):
+class LoginTabs(customtkinter.CTkTabview):
     def __init__(self, master, sock, comm, key,**kwargs):
         super().__init__(master, **kwargs)
 
@@ -66,12 +66,12 @@ class Tabs(customtkinter.CTkTabview):
         
         #---------------------------------------------------------------#
         # Register Page:
-        self.label = customtkinter.CTkLabel(
+        self.reg_label = customtkinter.CTkLabel(
             master=self.tab("Register"), 
             height=30, width=100, 
             font=self.label_font, text="Register", 
             text_color=("#26272E", "#E9EFE7"))
-        self.label.grid(row=0, column=0, padx=0, pady=10)
+        self.reg_label.grid(row=0, column=0, padx=0, pady=10)
         
         # Username textbox
         self.username_register = customtkinter.CTkEntry(self.tab("Register"), 
@@ -98,7 +98,11 @@ class Tabs(customtkinter.CTkTabview):
                                                     hover_color=("gray30","#4F5263"))
         self.register_button.grid(row=4, column=0, padx=0, pady=30)
         
+    
     def log_in(self):
+        """ Button event for loging in. Check validity of username and password. encrypt the data, send to server. 
+        if server send 'Valid' message, continue to next screen 
+        """
         username = self.username_login.get()
         password = self.password_login.get()
         
@@ -132,7 +136,12 @@ class Tabs(customtkinter.CTkTabview):
             self.socket.send(data)
             answer = self.socket.recv(4096).decode('utf-8')
             if answer == 'Valid':
-                self.master.destroy()
+                self.login_button.destroy()
+                self.register_button = customtkinter.CTkButton(self.tab("Register"), width=200, height= 75,
+                                                        font=self.label_font, fg_color=("#C8CEC6", "#1E2025"),
+                                                        corner_radius=20, text="Added user, please log in", command=self.register, 
+                                                        hover_color=("gray30","#4F5263"))
+                self.register_button.grid(row=4, column=0, padx=0, pady=30)
         else:
             self.login_button.destroy()
             self.register_button = customtkinter.CTkButton(self.tab("Register"), width=200, height= 75,
@@ -206,7 +215,7 @@ class LoginApp(customtkinter.CTk):
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(1, weight=1)
         
-        self.tabview = Tabs(
+        self.tabview = LoginTabs(
             master=self, height=400, width=400, sock = self.socket, key=key, 
             fg_color=("#E9EFE7", "#26272E"), segmented_button_selected_color=("#2A2C35", "#2A2C35"),
             segmented_button_selected_hover_color=("#4F5263","#4F5263"), corner_radius=20, comm = exit)
