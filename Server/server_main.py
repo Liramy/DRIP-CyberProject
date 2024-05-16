@@ -1,21 +1,30 @@
-import json
+# Import networking libraries
 import socket
 import threading
+
+# Import searching library
 from ArticleScrapping import ArticleScrapper
+
+# Import database library
+import sqlite3
+
+# Import base64 library
+from base64 import b64encode, b64decode
+import base64
+
+# Import saving libraries
 from os import path
 import sys
 import os
+import json
 
-import sqlite3
+# Import encryption library
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives import serialization, hashes
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-from base64 import b64encode, b64decode
 from cryptography.hazmat.backends import default_backend
-
 from cryptography.fernet import Fernet
-import base64
 
 def generate_key():
     """
