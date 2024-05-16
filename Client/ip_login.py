@@ -8,7 +8,7 @@ class IP_Login(customtkinter.CTk):
         self.title("IP configurration")
         self.geometry("700x450")
         self.command = command
-        customtkinter.set_appearance_mode("light")
+        customtkinter.set_appearance_mode("dark")
         
         # 4x1 grid
         self.columnconfigure(1, weight=1)

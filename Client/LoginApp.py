@@ -10,6 +10,14 @@ import customtkinter
 from tkinter import ttk
 from tkinter import *
 
+import requests
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.backends import default_backend
+from base64 import b64encode, b64decode
+
 from PIL import Image, ImageTk
 
 
@@ -19,12 +27,11 @@ class LoginTabs(customtkinter.CTkTabview):
 
         self.socket = sock
         self.command = comm
+        self.key = key
         
         # create tabs
         self.add("Login")
         self.add("Register")
-
-        self.cipher_suite = Fernet(key)
         
         self.tab("Login").grid_columnconfigure(0, weight=1)
         self.tab("Register").grid_columnconfigure(0, weight=1)
@@ -107,9 +114,9 @@ class LoginTabs(customtkinter.CTkTabview):
         password = self.password_login.get()
         
         if self.validation(username) and self.validation(password, False):
-            data = self.encrypt_obj({"Log in":(username, password)}) #pickle.dumps({"Log in":(username, password)})
+            data = self.encrypt_obj({"Log in":(username, password)}, symmetric_key=self.key) #pickle.dumps({"Log in":(username, password)})
             self.socket.send(data)
-            answer = self.socket.recv(4096).decode('utf-8')
+            answer = self.socket.recv(4096).decode()
             if answer == 'Valid':
                 self.master.destroy()
             else:
@@ -132,18 +139,18 @@ class LoginTabs(customtkinter.CTkTabview):
             self.validation(password, False)) and (
             password == password_confirm):
                 
-            data = self.encrypt_obj({"Register":(username, password)})#pickle.dumps({"Register":(username, password)})
+            data = self.encrypt_obj({"Register":(username, password)}, symmetric_key=self.key)#pickle.dumps({"Register":(username, password)})
             self.socket.send(data)
-            answer = self.socket.recv(4096).decode('utf-8')
+            answer = self.socket.recv(4096).decode()
             if answer == 'Valid':
-                self.login_button.destroy()
+                self.register_button.destroy()
                 self.register_button = customtkinter.CTkButton(self.tab("Register"), width=200, height= 75,
                                                         font=self.label_font, fg_color=("#C8CEC6", "#1E2025"),
                                                         corner_radius=20, text="Added user, please log in", command=self.register, 
                                                         hover_color=("gray30","#4F5263"))
                 self.register_button.grid(row=4, column=0, padx=0, pady=30)
         else:
-            self.login_button.destroy()
+            self.register_button.destroy()
             self.register_button = customtkinter.CTkButton(self.tab("Register"), width=200, height= 75,
                                                     font=self.label_font, fg_color=("#C8CEC6", "#1E2025"),
                                                     corner_radius=20, text="Invalid username or password", command=self.register, 
@@ -166,32 +173,37 @@ class LoginTabs(customtkinter.CTkTabview):
             length - min_characters >= 0) and all(
             char in allowed_characters for char in user_data)
             
-    def encrypt_obj(self, obj):
-        """Function for encrypting an object
+    def encrypt_obj(self, obj, symmetric_key):
+        encrypted_message = json.dumps(obj).encode()
+        iv = os.urandom(16)  # Initialization vector
+        cipher = Cipher(algorithms.AES(symmetric_key), modes.CFB(iv), backend=default_backend())
+        encryptor = cipher.encryptor()
+        encrypted_message = encryptor.update(encrypted_message) + encryptor.finalize()
 
-        Args:
-            obj (any): An object that you wish to transfer in sockets
+        payload = json.dumps({
+            'iv': b64encode(iv).decode('utf-8'),
+            'message': b64encode(encrypted_message).decode('utf-8')
+        })
+        return payload.encode()
 
-        Returns:
-            bytes: transferable string encrypted
-        """
-        serialized_obj = json.dumps(obj).encode()
-        encrypted_obj = self.cipher_suite.encrypt(serialized_obj)
-        return encrypted_obj
+    def decrypt_obj(self, enc, symmetric_key):
+        json_data = json.loads(enc)
+        iv = b64decode(json_data['iv'])
+        encrypted_msg = b64decode(json_data['message'])
 
-    def decrypt_obj(self, enc):
-        """Function for decrypting an object
-
-        Args:
-            enc (bytes): Encrypted byte of an object
-
-        Returns:
-            any: Decrypted
-        """
-        print(type(enc))
-        decrypted_obj = self.cipher_suite.decrypt(enc)
-        deserialized_obj = json.loads(decrypted_obj.decode())
-        return deserialized_obj
+        cipher = Cipher(algorithms.AES(symmetric_key), modes.CFB(iv), backend=default_backend)
+        decryptor = cipher.decryptor()
+        decrypted_message = decryptor.update(encrypted_msg) + decryptor.finalize()
+        return decrypted_message.decode()
+    
+    def load_key(self):
+        key_path = "Client/public_key.pem"
+        file_exists = path.exists(key_path)
+        if file_exists:
+            with open(key_path, "rb") as f:
+                return serialization.load_pem_public_key(f.read())
+        print("Error - no key found")
+        return None
     
 
 class LoginApp(customtkinter.CTk):

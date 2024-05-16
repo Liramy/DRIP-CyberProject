@@ -1,17 +1,25 @@
-import os
 import tkinter
-
 import customtkinter
 from tkinter import ttk
 from tkinter import *
+from PIL import Image, ImageTk
+
+import os
 import joblib
 import sys
-import sys
-from cryptography.fernet import Fernet
-import json
 from os import path
 
-from PIL import Image, ImageTk
+from cryptography.fernet import Fernet
+import json
+
+import requests
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.backends import default_backend
+from base64 import b64encode, b64decode
+
 
 customtkinter.set_appearance_mode("System")  # Modes: "System" (standard), "Dark", "Light"
 customtkinter.set_default_color_theme("blue")  # Themes: "blue" (standard), "green", "dark-blue"
@@ -26,7 +34,8 @@ class App(customtkinter.CTk):
         self.geometry("700x450")
         self.subject_list = ["subject"]
         self.link_list = {"subject":[""]}
-        self.cipher_suite = Fernet(key)
+        self.key = key
+        
 
         # set grid layout 1x2
         self.grid_rowconfigure(0, weight=1)
@@ -175,11 +184,11 @@ class App(customtkinter.CTk):
             return
         
         date = self.search_date.get()
-        data = self.encrypt_obj({"Search":(subject, date)})#pickle.dumps({"Search":(subject, date)})
+        data = self.encrypt_obj({"Search":(subject, date)}, self.key)
         self.socket.send(data)
 
         raw_results = self.socket.recv(16384)
-        data = self.decrypt_obj(raw_results)#pickle.loads(raw_results)
+        data = self.decrypt_obj(raw_results, self.key)
         
         self.subject_list.append(subject)
         self.link_list[subject] = data
@@ -210,32 +219,28 @@ class App(customtkinter.CTk):
                                                                     button_color=("gray50","#222227"), button_hover_color=("#4F5263","#4F5263"))
             self.library_select.grid(row=1, column=0, padx=10, pady=10)
             
-    def encrypt_obj(self, obj):
-        """Function for encrypting an object
+    def encrypt_obj(self, obj, symmetric_key):
+        encrypted_message = json.dumps(obj).encode()
+        iv = os.urandom(16)  # Initialization vector
+        cipher = Cipher(algorithms.AES(symmetric_key), modes.CFB(iv), backend=default_backend())
+        encryptor = cipher.encryptor()
+        encrypted_message = encryptor.update(encrypted_message) + encryptor.finalize()
 
-        Args:
-            obj (any): An object that you wish to transfer in sockets
+        payload = json.dumps({
+            'iv': b64encode(iv).decode('utf-8'),
+            'message': b64encode(encrypted_message).decode('utf-8')
+        })
+        return payload.encode()
 
-        Returns:
-            bytes: transferable string encrypted
-        """
-        serialized_obj = json.dumps(obj).encode()
-        encrypted_obj = self.cipher_suite.encrypt(serialized_obj)
-        return encrypted_obj
+    def decrypt_obj(self, enc, symmetric_key):
+        json_data = json.loads(enc)
+        iv = b64decode(json_data['iv'])
+        encrypted_msg = b64decode(json_data['message'])
 
-    def decrypt_obj(self, enc):
-        """Function for decrypting an object
-
-        Args:
-            enc (bytes): Encrypted byte of an object
-
-        Returns:
-            any: Decrypted
-        """
-        print(type(enc))
-        decrypted_obj = self.cipher_suite.decrypt(enc)
-        deserialized_obj = json.loads(decrypted_obj.decode())
-        return deserialized_obj
+        cipher = Cipher(algorithms.AES(symmetric_key), modes.CFB(iv), backend=default_backend)
+        decryptor = cipher.decryptor()
+        decrypted_message = decryptor.update(encrypted_msg) + decryptor.finalize()
+        return decrypted_message.decode()
         
         
         

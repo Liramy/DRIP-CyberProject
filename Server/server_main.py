@@ -7,6 +7,12 @@ import sys
 import os
 
 import sqlite3
+from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.primitives import serialization, hashes
+from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from base64 import b64encode, b64decode
+from cryptography.hazmat.backends import default_backend
 
 from cryptography.fernet import Fernet
 import base64
@@ -53,7 +59,7 @@ def create_table():
 
     # Create a table named 'users' with columns 'id', 'name', and 'password'
     c.execute('''CREATE TABLE IF NOT EXISTS users
-                 (id INTEGER PRIMARY KEY, name TEXT, Password TEXT)''')
+                 (id INTEGER PRIMARY KEY, name TEXT, password TEXT)''')
 
     conn.commit()  # Commit changes
     conn.close()   # Close connection
@@ -83,38 +89,52 @@ def clear_users_table():
     conn.commit()
     conn.close()
     
-def encrypt_obj(obj, cipher_suite):
-        """Function for encrypting an object
+def encrypt_message(obj, symmetric_key):
+    encrypted_message = json.dumps(obj).encode()
+    iv = os.urandom(16)  # Initialization vector
+    cipher = Cipher(algorithms.AES(symmetric_key), modes.CFB(iv), backend=default_backend())
+    encryptor = cipher.encryptor()
+    encrypted_message = encryptor.update(encrypted_message) + encryptor.finalize()
 
-        Args:
-            obj (any): An object that you wish to transfer in sockets
+    payload = json.dumps({
+        'iv': b64encode(iv).decode('utf-8'),
+        'message': b64encode(encrypted_message).decode('utf-8')
+    })
+    return payload.encode()
 
-        Returns:
-            bytes: transferable string encrypted
-        """
-        serialized_obj = json.dumps(obj).encode()
-        encrypted_obj = cipher_suite.encrypt(serialized_obj)
-        return encrypted_obj
+def decrypt_obj(enc, symmetric_key):
+    json_data = json.loads(enc)
+    iv = b64decode(json_data['iv'])
+    encrypted_msg = b64decode(json_data['message'])
 
-def decrypt_obj(enc, cipher_suite):
-    """Function for decrypting an object
+    cipher = Cipher(algorithms.AES(symmetric_key), modes.CFB(iv), backend=default_backend)
+    decryptor = cipher.decryptor()
+    decrypted_message = decryptor.update(encrypted_msg) + decryptor.finalize()
+    return json.loads(decrypted_message)
+    
+def decrypt_key(enc, private_key):
+    symmetric_key = private_key.decrypt(
+    enc,
+    padding.OAEP(
+        mgf=padding.MGF1(algorithm=hashes.SHA256()),
+        algorithm=hashes.SHA256(),
+        label=None
+        )
+    )
+    return symmetric_key
 
-    Args:
-        enc (bytes): Encrypted byte of an object
-
-    Returns:
-        any: Decrypted
-    """
-    decrypted_obj = cipher_suite.decrypt(enc)
-    deserialized_obj = json.loads(decrypted_obj.decode())
-    return deserialized_obj
-
-def handle_clients(client:socket.socket, addr, cipher_suite):
+def handle_start(client, address, private_key):
     data = client.recv(4096)
-    var = decrypt_obj(data, cipher_suite=cipher_suite)#pickle.loads(data)
+    key = decrypt_key(data, private_key)
+    t = threading.Thread(target=handle_clients, args=(client, address, key))
+    t.start()
+
+def handle_clients(client:socket.socket, addr, symmetric_key):
+    data = client.recv(4096)
+    var = decrypt_obj(data, symmetric_key=symmetric_key)#pickle.loads(data)
     
     key = ''
-    for varkey in var:
+    for varkey in var.keys():
         key = varkey
     
     users = get_users()
@@ -123,53 +143,88 @@ def handle_clients(client:socket.socket, addr, cipher_suite):
         for user in users:
             if decrypt_user_data(user[1]) == (var[key][0]) and decrypt_user_data(user[2]) == (var[key][1]):
                 client.send("Valid".encode('utf-8'))
-                handle_clients(client=client, addr=addr, cipher_suite=cipher_suite)
+                handle_clients(client=client, addr=addr, symmetric_key=symmetric_key)
                 return
         client.send("Invalid".encode('utf-8'))
-        handle_clients(client=client, addr=addr, cipher_suite=cipher_suite)
+        handle_clients(client=client, addr=addr, symmetric_key=symmetric_key)
         
     elif key == 'Register':
         insert_user(encrypt_user_data(var[key][0]), encrypt_user_data(var[key][1]))
         client.send("Valid".encode('utf-8'))
-        handle_clients(client=client, addr=addr, cipher_suite=cipher_suite)
+        handle_clients(client=client, addr=addr, symmetric_key=symmetric_key)
     elif key == 'Search':
         (subject, date) = (var[key])
         try:
             scrapper = ArticleScrapper(subject=subject, period=date, 
                                     max_results=25, language='En')
-            send_data = encrypt_obj(scrapper.get_results(), cipher_suite)#pickle.dumps(scrapper.get_results())
+            send_data = encrypt_message(scrapper.get_results(), symmetric_key)#pickle.dumps(scrapper.get_results())
         except:
-            send_data = encrypt_obj("Too many requests")
+            send_data = encrypt_message("Too many requests", symmetric_key)
         client.send(send_data)
     else:
         client.send("Invalid".encode('utf-8'))
-        handle_clients(client=client, addr=addr, cipher_suite=cipher_suite)
+        handle_clients(client=client, addr=addr, symmetric_key=symmetric_key)
         
-create_table()
+def generate_key():
+    """To be used only if key does not exist"""
+    return rsa.generate_private_key(
+        public_exponent=65537,
+        key_size=2048)
+    
+def save_key(private_key):
+    with open("Server/private_key.pem", "wb") as f:
+        f.write(
+            private_key.private_bytes(
+                encoding=serialization.Encoding.PEM,
+                format=serialization.PrivateFormat.PKCS8,
+                encryption_algorithm=serialization.NoEncryption()
+            )
+        )
+        
+def generate_public_key(private_key):
+    public_key = private_key.public_key()
+    with open("Server/public_key.pem", "wb") as f:
+        f.write(
+            public_key.public_bytes(
+                encoding=serialization.Encoding.PEM,
+                format=serialization.PublicFormat.SubjectPublicKeyInfo
+            )
+        )
+        
+def load_private_key():
+    private_key_path = "Server/private_key.pem"
+    
+    file_exists = path.exists(private_key_path)
+    if file_exists:
+        with open(private_key_path, "rb") as f:
+            return serialization.load_pem_private_key(f.read(), password=None)
+        
+    print("Error - no key found")
+    return None
+
+def load_public_key():
+    public_key_path = "Server/public_key.pem"
+    
+    file_exists = path.exists(public_key_path)
+    if file_exists:
+        with open(public_key_path, "rb") as f:
+            return serialization.load_pem_public_key(f.read())
+    print("Error - key not found")
+    return None
+
     
 host = '0.0.0.0'
 port = 8080
 server = socket.socket()
 server.bind((host, port))
 server.listen(5)
-
+create_table()
 print(socket.gethostbyname(socket.gethostname()))
 
 threads = []
-if not path.exists("chat-key.key"):
-            key = Fernet.generate_key()
-            if not path.exists("chat-key.key"):
-                with open("chat-key.key", "wb") as key_file:
-                    key_file.write(key)
-else:
-    key = open("chat-key.key", "rb").read()
-
-cipher_suite = Fernet(key)
+private_key = load_private_key()
 
 while True:
     (client_socket, address) = server.accept()
     
-    t = threading.Thread(target=handle_clients, args=(client_socket, address, cipher_suite))
-    t.start()
-    
-    threads.append(t)
+    handle_start(client_socket, address, private_key)
